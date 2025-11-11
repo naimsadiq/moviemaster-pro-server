@@ -61,6 +61,14 @@ async function run() {
       });
     });
 
+
+    //my collection movies
+    app.get("/my-collection",  async(req, res) => {
+      const email = req.query.email
+      const result = await moviesCollection.find({created_by: email}).toArray()
+      res.send(result)
+    })
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
