@@ -29,6 +29,7 @@ async function run() {
 
     const db = client.db("movies-db");
     const moviesCollection = db.collection("movies");
+    const watchlistCollection = db.collection("watchlist");
 
     //all movies data
     app.get("/movies", async (req, res) => {
@@ -49,6 +50,35 @@ async function run() {
       });
     });
 
+    //update movie details
+    app.get("/movies/:id", async (req, res) => {
+      const { id } = req.params;
+      const objectId = new ObjectId(id);
+
+      const result = await moviesCollection.findOne({ _id: objectId });
+
+      res.send(result);
+    });
+
+    app.put("/movies/:id", async (req, res) => {
+      const { id } = req.params;
+      const data = req.body;
+      // console.log(id);
+      // console.log(data);
+      const objectId = new ObjectId(id);
+      const filter = { _id: objectId };
+      const update = {
+        $set: data,
+      };
+
+      const result = await moviesCollection.updateOne(filter, update);
+
+      res.send({
+        success: true,
+        result,
+      });
+    });
+
     //movie insert data
     app.post("/movies", async (req, res) => {
       const data = req.body;
@@ -61,13 +91,85 @@ async function run() {
       });
     });
 
-
     //my collection movies
-    app.get("/my-collection",  async(req, res) => {
-      const email = req.query.email
-      const result = await moviesCollection.find({created_by: email}).toArray()
-      res.send(result)
-    })
+    app.get("/my-collection", async (req, res) => {
+      const email = req.query.email;
+      const result = await moviesCollection
+        .find({ created_by: email })
+        .toArray();
+      res.send(result);
+    });
+
+    //delete movie
+    app.delete("/movie/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await moviesCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+
+      res.send({
+        success: true,
+        result,
+      });
+    });
+    // watch list movie data
+    app.post("/watchlist/:id", async (req, res) => {
+      const data = req.body;
+
+      const result = await watchlistCollection.insertOne(data);
+      console.log(result);
+      res.send({
+        success: true,
+        result,
+      });
+    });
+
+    app.get("/my-watchlist", async (req, res) => {
+      const email = req.query.email;
+      const result = await watchlistCollection
+        .find({ watchlist_by: email })
+        .toArray();
+      res.send(result);
+    });
+
+    // delete watchlist
+    app.delete("/my-watchlist/:id", async (req, res) => {
+      const { id } = req.params;
+      const result = await watchlistCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+
+      res.send({
+        success: true,
+        result,
+      });
+    });
+
+    //searcing movies
+    app.get("/search", async (req, res) => {
+      const search_text = req.query.search;
+      const result = await moviesCollection
+        .find({ title: { $regex: search_text, $options: "i" } })
+        .toArray();
+      res.send(result);
+    });
+
+    //genre data api
+    app.get("/movies", async (req, res) => {
+      const genre = req.query.genre;
+
+      if (genre) {
+        const result = await moviesCollection
+          .find({ genres: { $regex: genre, $options: "i" } })
+          .toArray();
+        return res.send(result);
+      }
+
+      const allMovies = await moviesCollection.find().toArray();
+      res.send(allMovies);
+    });
+
+    
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
