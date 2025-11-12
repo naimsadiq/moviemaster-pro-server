@@ -1,14 +1,21 @@
 //VkL5uf4k4falCnFh    moviesDB
 
 const express = require("express");
+const admin = require("firebase-admin");
 const cors = require("cors");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
+const serviceAccount = require("./moviemaster-pro-firebase-admin.json");
 
 const app = express();
 const port = 3000;
 
 app.use(cors());
 app.use(express.json());
+
+// firebase admin
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 const uri =
   "mongodb+srv://moviesDB:VkL5uf4k4falCnFh@cluster0.e1tbnr7.mongodb.net/?appName=Cluster0";
@@ -31,6 +38,28 @@ async function run() {
     const moviesCollection = db.collection("movies");
     const watchlistCollection = db.collection("watchlist");
 
+    //middleware
+    const verifyUser = async (req, res, next) => {
+      const authorization = req.headers.authorization;
+
+      if (!authorization) {
+        return res.status(401).send({
+          message: "unauthorized access. Token not found!",
+        });
+      }
+
+      const token = authorization.split(" ")[1];
+      try {
+        await admin.auth().verifyIdToken(token);
+
+        next();
+      } catch (error) {
+        res.status(401).send({
+          message: "unauthorized access.",
+        });
+      }
+    };
+
     //all movies data
     app.get("/movies", async (req, res) => {
       const result = await moviesCollection.find().toArray();
@@ -38,7 +67,7 @@ async function run() {
     });
 
     //id movie data
-    app.get("/movie-details/:id", async (req, res) => {
+    app.get("/movie-details/:id", verifyUser, async (req, res) => {
       const { id } = req.params;
       const objectId = new ObjectId(id);
 
@@ -92,7 +121,7 @@ async function run() {
     });
 
     //my collection movies
-    app.get("/my-collection", async (req, res) => {
+    app.get("/my-collection", verifyUser, async (req, res) => {
       const email = req.query.email;
       const result = await moviesCollection
         .find({ created_by: email })
@@ -124,7 +153,7 @@ async function run() {
       });
     });
 
-    app.get("/my-watchlist", async (req, res) => {
+    app.get("/my-watchlist", verifyUser, async (req, res) => {
       const email = req.query.email;
       const result = await watchlistCollection
         .find({ watchlist_by: email })
@@ -168,8 +197,6 @@ async function run() {
       const allMovies = await moviesCollection.find().toArray();
       res.send(allMovies);
     });
-
-    
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
