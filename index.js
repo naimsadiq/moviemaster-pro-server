@@ -89,11 +89,9 @@ async function run() {
       res.send(result);
     });
 
-    app.put("/movies/:id", async (req, res) => {
+    app.put("/movies/:id", verifyUser, async (req, res) => {
       const { id } = req.params;
       const data = req.body;
-      // console.log(id);
-      // console.log(data);
       const objectId = new ObjectId(id);
       const filter = { _id: objectId };
       const update = {
@@ -109,7 +107,7 @@ async function run() {
     });
 
     //movie insert data
-    app.post("/movies", async (req, res) => {
+    app.post("/movies", verifyUser, async (req, res) => {
       const data = req.body;
       // console.log(data)
       const result = await moviesCollection.insertOne(data);
