@@ -1,2 +1,4 @@
 node_modules
 moviemaster-pro-firebase-admin.json
+.env
+.vercel
