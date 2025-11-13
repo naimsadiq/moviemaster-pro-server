@@ -1,11 +1,10 @@
-//VkL5uf4k4falCnFh    moviesDB
-
 const express = require("express");
 const admin = require("firebase-admin");
 const cors = require("cors");
 require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
-// index.js
+
+// buffer firebase service key
 const decoded = Buffer.from(
   process.env.FIREBASE_SERVICE_KEY,
   "base64"
@@ -23,6 +22,7 @@ admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
+//mongoDB username and password
 const uri = `mongodb+srv://${process.env.DB_USERNAME}:${process.env.DB_PASSWORD}@cluster0.e1tbnr7.mongodb.net/?appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -56,7 +56,6 @@ async function run() {
       const token = authorization.split(" ")[1];
       try {
         await admin.auth().verifyIdToken(token);
-
         next();
       } catch (error) {
         res.status(401).send({
@@ -75,9 +74,7 @@ async function run() {
     app.get("/movie-details/:id", verifyUser, async (req, res) => {
       const { id } = req.params;
       const objectId = new ObjectId(id);
-
       const result = await moviesCollection.findOne({ _id: objectId });
-
       res.send({
         success: true,
         result,
@@ -88,9 +85,7 @@ async function run() {
     app.get("/movies/:id", async (req, res) => {
       const { id } = req.params;
       const objectId = new ObjectId(id);
-
       const result = await moviesCollection.findOne({ _id: objectId });
-
       res.send(result);
     });
 
@@ -102,9 +97,7 @@ async function run() {
       const update = {
         $set: data,
       };
-
       const result = await moviesCollection.updateOne(filter, update);
-
       res.send({
         success: true,
         result,
@@ -114,7 +107,6 @@ async function run() {
     //movie insert data
     app.post("/movies", verifyUser, async (req, res) => {
       const data = req.body;
-      // console.log(data)
       const result = await moviesCollection.insertOne(data);
       console.log(result);
       res.send({
@@ -144,10 +136,10 @@ async function run() {
         result,
       });
     });
+
     // watch list movie data
     app.post("/watchlist/:id", async (req, res) => {
       const data = req.body;
-
       const result = await watchlistCollection.insertOne(data);
       console.log(result);
       res.send({
@@ -156,6 +148,7 @@ async function run() {
       });
     });
 
+    //my watchlist data
     app.get("/my-watchlist", verifyUser, async (req, res) => {
       const email = req.query.email;
       const result = await watchlistCollection
@@ -170,7 +163,6 @@ async function run() {
       const result = await watchlistCollection.deleteOne({
         _id: new ObjectId(id),
       });
-
       res.send({
         success: true,
         result,
@@ -189,14 +181,12 @@ async function run() {
     //genre data api
     app.get("/movies", async (req, res) => {
       const genre = req.query.genre;
-
       if (genre) {
         const result = await moviesCollection
           .find({ genres: { $regex: genre, $options: "i" } })
           .toArray();
         return res.send(result);
       }
-
       const allMovies = await moviesCollection.find().toArray();
       res.send(allMovies);
     });
